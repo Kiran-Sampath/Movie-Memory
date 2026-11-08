@@ -1,18 +1,15 @@
 "use client";
 
-// The only client component in the app: it needs useActionState to show the
-// server's validation error without a full page reload.
+// Client component so it can show the server's validation error (via
+// useActionState) without a full page reload.
 import { useActionState } from "react";
 import { saveFavoriteMovie, type OnboardingState } from "./actions";
-import { MOVIE_MAX_LENGTH } from "@/lib/validation";
+import { MovieInput, TmdbCredit } from "@/components/movie-input";
 
 const initialState: OnboardingState = {};
 
-export function MovieForm() {
-  const [state, formAction, pending] = useActionState(
-    saveFavoriteMovie,
-    initialState,
-  );
+export function MovieForm({ suggestionsEnabled }: { suggestionsEnabled: boolean }) {
+  const [state, formAction, pending] = useActionState(saveFavoriteMovie, initialState);
 
   return (
     <form action={formAction} className="mt-8">
@@ -20,16 +17,7 @@ export function MovieForm() {
         Favorite movie
       </label>
       <div className="mt-2 flex">
-        <input
-          id="movie"
-          name="movie"
-          type="text"
-          required
-          maxLength={MOVIE_MAX_LENGTH}
-          autoComplete="off"
-          placeholder="e.g. Spirited Away"
-          className="min-w-0 flex-1 rounded-l-sm border border-line bg-panel px-4 py-3 text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none"
-        />
+        <MovieInput suggestionsEnabled={suggestionsEnabled} className="rounded-l-sm" />
         <button
           type="submit"
           disabled={pending}
@@ -38,11 +26,14 @@ export function MovieForm() {
           {pending ? "Saving…" : "Save"}
         </button>
       </div>
+
       {state.error && (
         <p role="alert" className="mt-3 text-sm text-red-300">
           {state.error}
         </p>
       )}
+
+      {suggestionsEnabled && <TmdbCredit />}
     </form>
   );
 }

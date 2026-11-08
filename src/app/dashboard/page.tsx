@@ -1,9 +1,12 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
-import { Suspense } from "react";
+import { isTmdbEnabled } from "@/lib/tmdb";
 import { Avatar } from "./avatar";
+import { FavoriteMovie } from "./favorite-movie";
 import { FunFact, FunFactLoading } from "./fun-fact";
+import { Poster, PosterPlaceholder } from "./poster";
 
 export default async function DashboardPage() {
   // Logged out -> back to the landing page (which has the sign-in button).
@@ -18,6 +21,8 @@ export default async function DashboardPage() {
   });
   // First-time users (no movie yet) go to onboarding.
   if (!user?.favoriteMovie) redirect("/onboarding");
+
+  const tmdbEnabled = isTmdbEnabled();
 
   async function logOut() {
     "use server";
@@ -43,18 +48,27 @@ export default async function DashboardPage() {
         </form>
       </div>
 
-      <section className="mt-16 border-t border-line pt-10">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted">Your favorite film</p>
-        <h1 className="mt-2 font-serif text-5xl font-bold leading-tight">
-          {user.favoriteMovie}
-        </h1>
-      </section>
+      <FavoriteMovie
+        movie={user.favoriteMovie}
+        suggestionsEnabled={tmdbEnabled}
+        poster={
+          // Only with TMDB set up. Streams in like the fact, so a slow TMDB
+          // never holds up the page.
+          tmdbEnabled && (
+            <Suspense key={user.favoriteMovie} fallback={<PosterPlaceholder />}>
+              <Poster movie={user.favoriteMovie} />
+            </Suspense>
+          )
+        }
+      />
 
       <section className="mt-12">
         <p className="text-xs uppercase tracking-[0.2em] text-muted">Fun fact</p>
         <div className="mt-3">
-          {/* The page shows immediately; the fact streams in when OpenAI answers. */}
-          <Suspense fallback={<FunFactLoading />}>
+          {/* The page shows immediately; the fact streams in when OpenAI answers.
+              key: a new movie remounts this, so the loading state shows again
+              instead of the previous movie's fact. */}
+          <Suspense key={user.favoriteMovie} fallback={<FunFactLoading />}>
             <FunFact userId={userId} movie={user.favoriteMovie} />
           </Suspense>
         </div>

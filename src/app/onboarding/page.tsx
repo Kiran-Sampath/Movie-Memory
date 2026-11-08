@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { isTmdbEnabled } from "@/lib/tmdb";
 import { MovieForm } from "./movie-form";
 
 export default async function OnboardingPage() {
@@ -21,7 +22,8 @@ export default async function OnboardingPage() {
       <p className="mt-3 text-muted">
         Just one. We&apos;ll remember it for you.
       </p>
-      <MovieForm />
+      {/* Only a true/false reaches the browser, never the TMDB token. */}
+      <MovieForm suggestionsEnabled={isTmdbEnabled()} />
     </section>
   );
 }
