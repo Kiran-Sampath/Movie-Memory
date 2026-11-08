@@ -1,0 +1,76 @@
+// Prisma 7: the connection URL lives in prisma.config.ts, not here.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js tables (shape required by @auth/prisma-adapter)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String? // Google may not provide it
+  email         String?   @unique
+  emailVerified DateTime? // required by the adapter; unused by us
+  image         String? // Google may not provide it
+  createdAt     DateTime  @default(now())
+
+  // Our own field. null = user hasn't finished onboarding yet.
+  favoriteMovie String?
+
+  accounts Account[]
+  sessions Session[]
+  facts    Fact[]
+}
+
+// Links a User to their Google identity. Google's id for the person is
+// providerAccountId; finding it is how a returning user is recognised.
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+// One row per login. The browser cookie holds sessionToken.
+// Logging out deletes the row.
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// App tables
+// ---------------------------------------------------------------------------
+
+model Fact {
+  id        String   @id @default(cuid())
+  userId    String
+  movie     String // movie title at the time the fact was generated (cache key = user + movie)
+  text      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Serves our one query: newest fact for this user + movie.
+  @@index([userId, movie, createdAt(sort: Desc)])
+}

@@ -1,0 +1,18 @@
+# Local Postgres for development and tests.
+# Start with: docker compose up -d
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: moviememory # app database (created automatically)
+    ports:
+      - "5433:5432" # host 5433 → container 5432 (5433 avoids clashing with a locally installed Postgres)
+    volumes:
+      - pgdata:/var/lib/postgresql/data # keeps data between restarts
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro # creates the test DB on first start
+
+volumes:
+  pgdata:

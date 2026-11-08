@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Colour and font tokens. Tailwind turns these into classes like
+   bg-screen, text-muted, border-line, bg-accent, font-serif. */
+@theme {
+  --color-screen: #1b1e25; /* page background: dark blue-grey */
+  --color-panel: #252932; /* inputs, slightly raised areas */
+  --color-line: #343a46; /* borders and dividers */
+  --color-fg: #ece9e4; /* main text, warm off-white */
+  --color-muted: #9aa1ad; /* secondary text */
+  --color-accent: #e5a442; /* buttons, amber */
+  --color-accent-dark: #c98a2c;
+
+  --font-serif: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-screen);
+  color: var(--color-fg);
+}
