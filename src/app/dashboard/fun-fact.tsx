@@ -1,17 +1,11 @@
-import { prisma } from "@/lib/db";
-import { generateFact } from "@/lib/openai";
+import { CACHE_WINDOW_MS, getFact } from "@/lib/facts";
 
-type FunFactProps = { userId: string; movie: string };
+const CACHE_WINDOW_SECONDS = CACHE_WINDOW_MS / 1000;
 
-type FactResult =
-  | { status: "ok"; text: string }
-  | { status: "unknown" } // the model doesn't know this film
-  | { status: "error" }; // OpenAI or the database failed
-
-// Base version (step 5): a new fact on every page load, saved to the database.
-// Step 6 replaces the body with the cached, lock-protected getFact().
-export async function FunFact({ userId, movie }: FunFactProps) {
-  const result = await newFact(userId, movie);
+// Server component: all the caching, locking and fallback logic lives in
+// getFact(); this only decides what to show for each outcome.
+export async function FunFact({ userId }: { userId: string }) {
+  const result = await getFact(userId);
 
   if (result.status === "unknown") {
     return (
@@ -28,21 +22,21 @@ export async function FunFact({ userId, movie }: FunFactProps) {
       </p>
     );
   }
-  return <p className="text-lg leading-relaxed">{result.text}</p>;
+
+  return (
+    <div>
+      <p className="text-lg leading-relaxed">{result.text}</p>
+      <p className="mt-3 text-xs text-muted">{statusLine(result.status, result.ageSeconds)}</p>
+    </div>
+  );
 }
 
-// Generates a fact and stores it. "Unknown" replies are not stored.
-async function newFact(userId: string, movie: string): Promise<FactResult> {
-  try {
-    const text = await generateFact(movie);
-    if (text === null) return { status: "unknown" };
+function statusLine(status: "new" | "cached" | "stale", ageSeconds: number): string {
+  if (status === "new") return "Fresh fact";
+  if (status === "stale") return "Couldn't get a new fact, so here's your last one";
 
-    await prisma.fact.create({ data: { userId, movie, text } });
-    return { status: "ok", text };
-  } catch (error) {
-    console.error("Fact generation failed", error);
-    return { status: "error" };
-  }
+  const nextIn = Math.max(1, CACHE_WINDOW_SECONDS - ageSeconds);
+  return `Generated ${ageSeconds}s ago · a new one in ${nextIn}s`;
 }
 
 export function FunFactLoading() {

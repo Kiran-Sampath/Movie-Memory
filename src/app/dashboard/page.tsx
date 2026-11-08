@@ -69,7 +69,7 @@ export default async function DashboardPage() {
               key: a new movie remounts this, so the loading state shows again
               instead of the previous movie's fact. */}
           <Suspense key={user.favoriteMovie} fallback={<FunFactLoading />}>
-            <FunFact userId={userId} movie={user.favoriteMovie} />
+            <FunFact userId={userId} />
           </Suspense>
         </div>
       </section>
